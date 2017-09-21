@@ -30,7 +30,7 @@ class DynamoDBController extends Controller
     public function index() {
 
       exec('ps aux | grep "inspire" | grep -v grep', $pids);
-      if (count($pids) > 0) {
+      if (count($pids) > 2) {
         exit();
       }
 
@@ -74,11 +74,13 @@ class DynamoDBController extends Controller
             if (strlen($archive[0]) == 0) {
               continue;
             }
-            $this->scanFilterA[] = [
-              "fingerprint" => ['S' => $archive[0]],
-              "instance" => ['S' => $archive[1]]
-            ];
-            $this->users[$item['archive']['S']]['user'] = $item['user']['S'];
+            if(!$this->in_array_r($archive[0],$this->scanFilterA)) {
+              $this->scanFilterA[] = [
+                "fingerprint" => ['S' => $archive[0]],
+                "instance" => ['S' => $archive[1]]
+              ];
+              $this->users[$item['archive']['S']]['user'] = $item['user']['S'];
+            }
           }
 
           $result = $this->batchGetItem($this->tableNameA, $this->scanFilterA, $this->attributesToGetA);
@@ -86,8 +88,10 @@ class DynamoDBController extends Controller
           $itemsA = $item[$this->tableNameA];
 
           foreach ($itemsA as $item) {
-            $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
-            $this->users[$item['fingerprint']['S']."|".$item['instance']['S']][$item['data']['S']] = 1;
+            if(!$this->in_array_r($item['data']['S'],$this->scanFilterD)) {
+              $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
+              $this->users[$item['fingerprint']['S'] . "|" . $item['instance']['S']][$item['data']['S']] = 1;
+            }
           }
           $result = $this->batchGetItem($this->tableNameD, $this->scanFilterD, $this->attributesToGetD);
           $item = $result->get('Responses');
@@ -230,5 +234,15 @@ class DynamoDBController extends Controller
     } else {
       return false;
     }
+  }
+
+  function in_array_r($needle, $haystack, $strict = false) {
+    foreach ($haystack as $item) {
+      if (($strict ? $item === $needle : $item == $needle) || (is_array($item) && in_array_r($needle, $item, $strict))) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
