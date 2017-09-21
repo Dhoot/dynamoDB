@@ -107,6 +107,8 @@ class DynamoDBController extends Controller
           }
 
           if (count($this->lastEvaluatedKeyAU) > 0) {
+            $this->scanFilterA = array();
+            $this->scanFilterD = array();
             try {
               $result = $this->scanWithLast($this->tableNameAU, $this->scanFilterAU, $this->attributesToGetAU, $this->lastEvaluatedKeyAU);
               $itemsAU = $result->get('Items');
