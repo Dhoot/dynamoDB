@@ -71,7 +71,7 @@ class DynamoDBController extends Controller
               "fingerprint" => ['S' => $archive[0]],
               "instance" => ['S' => $archive[1]]
             ];
-            $this->users[$item['user']['S']][$item['archive']['S']] = [];
+            $this->users[$item['archive']['S']]['user'] = $item['user']['S'];
           }
 
           $result = $this->batchGetItem($this->tableNameA, $this->scanFilterA, $this->attributesToGetA);
@@ -80,25 +80,27 @@ class DynamoDBController extends Controller
 
           foreach ($itemsA as $item) {
             $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
-            $this->users[$item['user']['S']][$item['fingerprint']['S']."|".$item['instance']['S']][$item['data']['S']] = 1;
+            $this->users[$item['fingerprint']['S']."|".$item['instance']['S']][$item['data']['S']] = 1;
           }
           $result = $this->batchGetItem($this->tableNameD, $this->scanFilterD, $this->attributesToGetD);
           $item = $result->get('Responses');
           $itemsD = $item[$this->tableNameD];
 
           foreach ($itemsD as $item) {
-            foreach ($this->users as $user=>$fUser){
-              foreach ($fUser as $archive=>$sUser){
-                foreach ($sUser as $dataId=>$val){
-                  if($dataId == $item['id']['S']){
-                    if (isset($this->allUsers[$this->organisation][$user]['length'])) {
-                      $this->allUsers[$this->organisation][$user]['length'] += $item['length']['N'];
-                    }
-                    else {
-                      $this->allUsers[$this->organisation][$user]['length'] = $item['length']['N'];
-                    }
-                    $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
+            foreach ($this->users as $archive=>$sUser){
+              foreach ($sUser as $dataId=>$val){
+                if($dataId=="user") {
+                  $user = $val;
+                  continue;
+                }
+                if($dataId == $item['id']['S']){
+                  if (isset($this->allUsers[$this->organisation][$user]['length'])) {
+                    $this->allUsers[$this->organisation][$user]['length'] += $item['length']['N'];
                   }
+                  else {
+                    $this->allUsers[$this->organisation][$user]['length'] = $item['length']['N'];
+                  }
+                  $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
                 }
               }
             }
