@@ -29,7 +29,7 @@ class DynamoDBController extends Controller
 
     public function index() {
 
-      exec("ps aux | grep \"inspire\" | grep -v grep", $pids);
+      exec('ps aux | grep "inspire" | grep -v grep', $pids);
       if (count($pids) > 0) {
         exit();
       }
