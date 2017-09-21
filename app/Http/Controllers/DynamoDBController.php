@@ -24,6 +24,7 @@ class DynamoDBController extends Controller
     private $scanFilterA = null;
     private $scanFilterD = null;
     private $allUsers;
+    private $users = array();
 
 
     public function index() {
@@ -59,50 +60,51 @@ class DynamoDBController extends Controller
           echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
 
-
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
-          $item = $itemsAU[$i];
-          $archive = explode("|", $item['archive']['S']);
-          if (strlen($archive[0]) == 0 || strlen($archive[1]) == 0) {
-            continue;
+
+          foreach ($itemsAU as $item) {
+            $archive = explode("|", $item['archive']['S']);
+            if (strlen($archive[0]) == 0) {
+              continue;
+            }
+            $this->scanFilterA[] = [
+              "fingerprint" => ['S' => $archive[0]],
+              "instance" => ['S' => $archive[1]]
+            ];
+            $this->users[$item['user']['S']][$item['archive']['S']] = [];
           }
 
-          $this->scanFilterA["fingerprint"]["AttributeValueList"] = [['S' => $archive[0]]];
-          $this->scanFilterA["fingerprint"]["ComparisonOperator"] = "EQ";
-          $this->scanFilterA["instance"]["AttributeValueList"] = [['S' => $archive[1]]];
-          $this->scanFilterA["instance"]["ComparisonOperator"] = "EQ";
-          try {
-            $result = $this->queryWithLast($this->tableNameA, $this->scanFilterA, $this->attributesToGetA, $this->lastEvaluatedKeyA);
-          } catch (Exception $e) {
-            sleep(5);
-            $result = $this->queryWithLast($this->tableNameA, $this->scanFilterA, $this->attributesToGetA, $this->lastEvaluatedKeyA);
-          }
-          $this->lastEvaluatedKeyA = $result->get('LastEvaluatedKey');
-          $itemsA = $result->get('Items');
-          $resultSizeA = $result->get('Count');
+          $result = $this->batchGetItem($this->tableNameA, $this->scanFilterA, $this->attributesToGetA);
+          $item = $result->get('Responses');
+          $itemsA = $item[$this->tableNameA];
 
-
-          $this->scanFilterD["id"]["AttributeValueList"] = [$itemsA[0]['data']];
-          $this->scanFilterD["id"]["ComparisonOperator"] = "EQ";
-          try {
-            $result = $this->queryWithLast($this->tableNameD, $this->scanFilterD, $this->attributesToGetD, $this->lastEvaluatedKeyD);
-          } catch (Exception $e) {
-            sleep(5);
-            $result = $this->queryWithLast($this->tableNameA, $this->scanFilterA, $this->attributesToGetA, $this->lastEvaluatedKeyA);
+          foreach ($itemsA as $item) {
+            $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
+            $this->users[$item['user']['S']][$item['fingerprint']['S']."|".$item['instance']['S']][$item['data']['S']] = 1;
           }
-          $this->lastEvaluatedKeyD = $result->get('LastEvaluatedKey');
-          $itemsD = $result->get('Items');
-          $resultSizeD = $result->get('Count');
+          $result = $this->batchGetItem($this->tableNameD, $this->scanFilterD, $this->attributesToGetD);
+          $item = $result->get('Responses');
+          $itemsD = $item[$this->tableNameD];
 
-          if (isset($this->allUsers[$this->organisation][$item['user']['S']]['length'])) {
-            $this->allUsers[$this->organisation][$item['user']['S']]['length'] += $itemsD[0]['length']['N'];
+          foreach ($itemsD as $item) {
+            foreach ($this->users as $user=>$fUser){
+              foreach ($fUser as $archive=>$sUser){
+                foreach ($sUser as $dataId=>$val){
+                  if($dataId == $item['id']['S']){
+                    if (isset($this->allUsers[$this->organisation][$user]['length'])) {
+                      $this->allUsers[$this->organisation][$user]['length'] += $item['length']['N'];
+                    }
+                    else {
+                      $this->allUsers[$this->organisation][$user]['length'] = $item['length']['N'];
+                    }
+                    $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
+                  }
+                }
+              }
+            }
           }
-          else {
-            $this->allUsers[$this->organisation][$item['user']['S']]['length'] = $itemsD[0]['length']['N'];
-          }
-          $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
 
-          if ($i == $resultSizeAU - 1) {
+          if (count($this->lastEvaluatedKeyAU) > 0) {
             try {
               $result = $this->scanWithLast($this->tableNameAU, $this->scanFilterAU, $this->attributesToGetAU, $this->lastEvaluatedKeyAU);
               $itemsAU = $result->get('Items');
@@ -118,14 +120,12 @@ class DynamoDBController extends Controller
               $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
             }
             $i = 0;
+            $this->users = array();
           }
+
         }
 
-
-
-        //$allUsers[$this->organisation][$itemsAU[$i]['user']['S']] = $itemsAU[$i];
         echo "<pre>$resultSizeAU";print_r($this->allUsers[$this->organisation]);echo "</pre>";exit();
-
     }
 
 
@@ -163,6 +163,20 @@ class DynamoDBController extends Controller
         //sleep(1);
         //echo "<pre>"; print_r($queryFilter);echo "</pre><hr/>";
         return $this->dynamo->Query($request);//getItem($request);
+    }
+
+
+    function batchGetItem($tableName, $queryFilter, $attributesToGet) {
+
+      //querying table
+      $request["AttributesToGet"] = $attributesToGet;
+      $request['ConsistentRead'] = TRUE;
+      $request['Keys'] = $queryFilter;
+      $req['RequestItems'][$tableName] = $request;
+
+        //sleep(1);
+        //echo "<pre>"; print_r($request);echo "</pre><hr/>";exit();
+        return $this->dynamo->BatchGetItem($req);//getItem($request);
     }
 
   protected function changeEnv($data = array()){
