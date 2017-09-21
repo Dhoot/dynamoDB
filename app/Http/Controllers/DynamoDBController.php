@@ -20,9 +20,9 @@ class DynamoDBController extends Controller
     private $lastEvaluatedKeyAU = null;
     private $lastEvaluatedKeyA = null;
     private $lastEvaluatedKeyD = null;
-    private $scanFilterAU = null;
-    private $scanFilterA = null;
-    private $scanFilterD = null;
+    private $scanFilterAU = array();
+    private $scanFilterA = array();
+    private $scanFilterD = array();
     private $allUsers;
     private $users = array();
 
