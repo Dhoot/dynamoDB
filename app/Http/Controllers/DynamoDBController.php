@@ -28,6 +28,13 @@ class DynamoDBController extends Controller
 
 
     public function index() {
+
+      exec("ps aux | grep \"inspire\" | grep -v grep", $pids);
+      if (count($pids) > 0) {
+        exit();
+      }
+
+
         $this->tableNameAU = $this->tableNameBase."archives-Users";
         $this->tableNameA = $this->tableNameBase."archives";
         $this->tableNameD = $this->tableNameBase."datas";
