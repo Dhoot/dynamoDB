@@ -251,10 +251,10 @@ class DynamoDBController extends Controller
           $this->organisation = $orgID;
         }
 
-        /*exec('ps aux | grep "backup" | grep -v grep', $pids);
+        exec('ps aux | grep "backup" | grep -v grep', $pids);
         if (count($pids) > 2) {
           exit();
-        }*/
+        }
 
         $this->tableNameBase = $this->enviromentPrefix.$this->tableNameBase;
         $this->tableNameAU = $this->tableNameBase."archives-Users";
