@@ -19,7 +19,7 @@ class DynamoDBController extends Controller
     private $tableNameD = "";
     private $attributesToGetAU = array( "user", "archive");
     private $attributesToGetA = array( "data", "fingerprint", "instance");
-    private $attributesToGetD = array( "id", "length");
+    private $attributesToGetD = array( "id", "length", "hotStoreLocation");
     private $lastEvaluatedKeyAU = null;
     private $lastEvaluatedKeyA = null;
     private $lastEvaluatedKeyD = null;
@@ -287,14 +287,13 @@ class DynamoDBController extends Controller
         $this->lastEvaluatedKeyAU = json_decode(env('lastEvaluatedKeyAU'),true);
 
         do {
-          print_r($this->lastEvaluatedKeyAU);
           $result = $this->scanWithLast($this->tableNameAU, $this->scanFilterAU, $this->attributesToGetAU, $this->lastEvaluatedKeyAU);
           $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
           $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
           $itemsAU = $result->get('Items');
           $resultSizeAU = $result->get('Count');
-          sleep(2);
-          echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
+          sleep(1);
+          //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
 
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
@@ -335,6 +334,7 @@ class DynamoDBController extends Controller
                   continue;
                 }
                 if($dataId == $item['id']['S']){
+                  print_r($item);
                   $emlFileName = last(explode("/",$item['hotStoreLocation']['S']));
                   if (isset($this->allUsers[$this->organisation][$user]['emails'])) {
                     $this->allUsers[$this->organisation][$user]['emails']++;
