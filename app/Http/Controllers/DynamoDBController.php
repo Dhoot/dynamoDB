@@ -17,7 +17,7 @@ class DynamoDBController extends Controller
     private $tableNameAU = "";
     private $tableNameA = "";
     private $tableNameD = "";
-    private $attributesToGetAU = array( "user", "archive");
+    private $attributesToGetAU = array( "user", "archive","state");
     private $attributesToGetA = array( "data", "fingerprint", "instance");
     private $attributesToGetD = array( "id", "length", "hotStoreLocation");
     private $lastEvaluatedKeyAU = null;
@@ -244,7 +244,7 @@ class DynamoDBController extends Controller
       return false;
     }
 
-    function takeBackUp($orgID = null){
+    function takeBackUp($orgID = null, $users = array()) {
         if($orgID === null){
           $orgID = $this->organisation;
         } else {
@@ -292,23 +292,31 @@ class DynamoDBController extends Controller
           $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
           $itemsAU = $result->get('Items');
           $resultSizeAU = $result->get('Count');
-          sleep(1);
+          //sleep(1);
           //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
+
 
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
 
           foreach ($itemsAU as $item) {
+
+            if(!in_array($item['user']['S'],$users)) {
+              return;
+            }
+
             $archive = explode("|", $item['archive']['S']);
             if (strlen($archive[0]) == 0) {
               continue;
             }
+
             if(!$this->in_array_r($archive[0],$this->scanFilterA)) {
               $this->scanFilterA[] = [
                 "fingerprint" => ['S' => $archive[0]],
                 "instance" => ['S' => $archive[1]]
               ];
               $this->users[$item['archive']['S']]['user'] = $item['user']['S'];
+              $this->users[$item['archive']['S']]['state'] = $item['state']['S'];
             }
           }
 
@@ -333,8 +341,11 @@ class DynamoDBController extends Controller
                   $user = $val;
                   continue;
                 }
+                if($dataId=="state") {
+                  $state = $val;
+                  continue;
+                }
                 if($dataId == $item['id']['S']){
-                  print_r($item);
                   $emlFileName = last(explode("/",$item['hotStoreLocation']['S']));
                   if (isset($this->allUsers[$this->organisation][$user]['emails'])) {
                     $this->allUsers[$this->organisation][$user]['emails']++;
@@ -345,7 +356,7 @@ class DynamoDBController extends Controller
 
                   $this->s3->copyObject(array(
                     'Bucket'     => $bucket,
-                    'Key'        => $orgID.'/'.$user.'/'.$emlFileName.'.eml',
+                    'Key'        => $orgID.'/'.$user.'/'.$state.'/'.$emlFileName.'.eml',
                     'CopySource' => $this->enviromentPrefix.'hotstore/default/'.$emlFileName,
                   ));
                   $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
