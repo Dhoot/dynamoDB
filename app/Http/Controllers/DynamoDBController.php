@@ -149,7 +149,7 @@ class DynamoDBController extends Controller
       //querying table
       $request["AttributesToGet"] = $attributesToGet;
       $request['ConsistentRead'] = true;
-      $request['Limit'] = 100;
+      $request['Limit'] = 10000;
       //$request["ConditionalOperator"] = "AND";
       $request['TableName'] = $tableName;
       if($lastEvaluatedKey){
