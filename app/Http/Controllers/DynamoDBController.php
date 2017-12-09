@@ -294,16 +294,12 @@ class DynamoDBController extends Controller
           $resultSizeAU = $result->get('Count');
           //sleep(1);
           //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
-        } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
+        } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0 && ($resultSizeAU >0 && !in_array($itemsAU[0]['user']['S'],$users)));
 
 
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
 
           foreach ($itemsAU as $item) {
-
-            if(!in_array($item['user']['S'],$users)) {
-              return;
-            }
 
             $archive = explode("|", $item['archive']['S']);
             if (strlen($archive[0]) == 0) {
