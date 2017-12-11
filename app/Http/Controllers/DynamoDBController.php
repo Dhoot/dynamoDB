@@ -283,6 +283,14 @@ class DynamoDBController extends Controller
         $this->scanFilterAU["organisation"]["AttributeValueList"] = array(array('S'=>$this->organisation));
         $this->scanFilterAU["organisation"]["ComparisonOperator"] = "EQ";
 
+        $usersFilter = array();
+        foreach ($users as $user){
+          $usersFilter[] = array('S'=>$user);
+        }
+        $this->scanFilterAU["user"]["AttributeValueList"] = $usersFilter;//array(array('S'=>$this->organisation));
+        $this->scanFilterAU["user"]["ComparisonOperator"] = "IN";
+
+
         $this->allUsers = json_decode(env('allUsers'),true);
         $this->lastEvaluatedKeyAU = json_decode(env('lastEvaluatedKeyAU'),true);
 
@@ -292,18 +300,13 @@ class DynamoDBController extends Controller
           $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
           $itemsAU = $result->get('Items');
           $resultSizeAU = $result->get('Count');
-          //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
+          echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
 
 
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
 
           foreach ($itemsAU as $item) {
-
-            if(!in_array($item['user']['S'],$users)){
-              continue;
-            }
-
             $archive = explode("|", $item['archive']['S']);
             if (strlen($archive[0]) == 0) {
               continue;
