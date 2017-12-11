@@ -292,17 +292,17 @@ class DynamoDBController extends Controller
           $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
           $itemsAU = $result->get('Items');
           $resultSizeAU = $result->get('Count');
-          //sleep(1);
           //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
-          if($resultSizeAU >0 && !in_array($itemsAU[0]['user']['S'],$users)){
-            continue;
-          }
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
 
 
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
 
           foreach ($itemsAU as $item) {
+
+            if(!in_array($item['user']['S'],$users)){
+              continue;
+            }
 
             $archive = explode("|", $item['archive']['S']);
             if (strlen($archive[0]) == 0) {
