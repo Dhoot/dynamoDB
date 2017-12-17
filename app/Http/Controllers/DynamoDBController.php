@@ -141,7 +141,7 @@ class DynamoDBController extends Controller
 
         }
 
-        echo "<pre>$resultSizeAU";print_r($this->allUsers[$this->organisation]);echo "</pre>";exit();
+        //echo "<pre>$resultSizeAU";print_r($this->allUsers[$this->organisation]);echo "</pre>";exit();
     }
 
     function scanWithLast($tableName, $scanFilter, $attributesToGet, $lastEvaluatedKey){
@@ -149,7 +149,7 @@ class DynamoDBController extends Controller
       //querying table
       $request["AttributesToGet"] = $attributesToGet;
       $request['ConsistentRead'] = true;
-      $request['Limit'] = 1000;
+      $request['Limit'] = 100;
       //$request["ConditionalOperator"] = "AND";
       $request['TableName'] = $tableName;
       if($lastEvaluatedKey){
@@ -167,7 +167,7 @@ class DynamoDBController extends Controller
       //querying table
       $request["AttributesToGet"] = $attributesToGet;
       $request['ConsistentRead'] = TRUE;
-      $request['Limit'] = 1000;
+      $request['Limit'] = 100;
       //$request["ConditionalOperator"] = "AND";
       $request['TableName'] = $tableName;
       if ($lastEvaluatedKey) {
@@ -297,11 +297,11 @@ class DynamoDBController extends Controller
         do {
           $result = $this->scanWithLast($this->tableNameAU, $this->scanFilterAU, $this->attributesToGetAU, $this->lastEvaluatedKeyAU);
           $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
-          $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
           $itemsAU = $result->get('Items');
           $resultSizeAU = $result->get('Count');
-          echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
+          //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
+        $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
 
 
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
@@ -390,7 +390,7 @@ class DynamoDBController extends Controller
 
         }
 
-        echo "<pre>$resultSizeAU";print_r($this->allUsers[$this->organisation]);echo "</pre>";exit();
+        //echo "<pre>$resultSizeAU";print_r($this->allUsers[$this->organisation]);echo "</pre>";exit();
 
     }
 }
