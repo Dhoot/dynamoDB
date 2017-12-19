@@ -280,8 +280,8 @@ class DynamoDBController extends Controller
           $this->s3->waitUntil('BucketExists', array('Bucket' => $bucket));
         }
 
-        $this->scanFilterAU["organisation"]["AttributeValueList"] = array(array('S'=>$this->organisation));
-        $this->scanFilterAU["organisation"]["ComparisonOperator"] = "EQ";
+        //$this->scanFilterAU["organisation"]["AttributeValueList"] = array(array('S'=>$this->organisation));
+        //$this->scanFilterAU["organisation"]["ComparisonOperator"] = "EQ";
 
         $usersFilter = array();
         foreach ($users as $user){
@@ -355,12 +355,13 @@ class DynamoDBController extends Controller
                   else {
                     $this->allUsers[$this->organisation][$user]['emails'] = 1;
                   }
-
-                  $this->s3->copyObject(array(
-                    'Bucket'     => $bucket,
-                    'Key'        => $orgID.'/'.$user.'/'.$state.'/'.$emlFileName.'.eml',
-                    'CopySource' => $this->enviromentPrefix.'hotstore/default/'.$emlFileName,
-                  ));
+                  //if(!$this->s3->doesObjectExist($bucket, $orgID . '_/' . $user . '/' . $state . '/' . $emlFileName . '.eml')) {
+                    $this->s3->copyObject([
+                      'Bucket' => $bucket,
+                      'Key' => $orgID . '_/' . $user . '/' . $state . '/' . $emlFileName . '.eml',
+                      'CopySource' => $this->enviromentPrefix . 'hotstore/default/' . $emlFileName,
+                    ]);
+                  //}
                   $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
                 }
               }
