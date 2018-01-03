@@ -67,7 +67,7 @@ class DynamoDBController extends Controller
           $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
           $itemsAU = $result->get('Items');
           $resultSizeAU = $result->get('Count');
-          //sleep(2);
+          sleep(5);
           //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
         if(count($this->lastEvaluatedKeyAU) > 1) {
@@ -321,6 +321,7 @@ class DynamoDBController extends Controller
           $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
           $itemsAU = $result->get('Items');
           $resultSizeAU = $result->get('Count');
+          sleep(2);
           //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
         if(count($this->lastEvaluatedKeyAU) > 1) {
