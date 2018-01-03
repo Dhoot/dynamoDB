@@ -11,7 +11,7 @@ class DynamoDBController extends Controller
 {
     private $dynamo;
     private $s3;
-    private $organisation = "utgIPo9zU9XTELIkWLnc";//"demolab";
+    private $organisation = "sS41TUi9WQAo4Zdz7cs3";//"demolab";
     private $enviromentPrefix = "mailsphere-live-internal-";//"mailsphere-test-default-";
     private $tableNameBase = "index-";
     private $tableNameAU = "";
@@ -43,7 +43,7 @@ class DynamoDBController extends Controller
         $this->tableNameD = $this->tableNameBase."datas";
 
         $this->allUsers[$this->organisation] = array();
-        $lastEvaluatedKey = null;
+
         //DynamoDB
         $this->dynamo = AWS::createClient('DynamoDb');
 
@@ -57,17 +57,22 @@ class DynamoDBController extends Controller
 
         $this->allUsers = json_decode(env('allUsers'),true);
         $this->lastEvaluatedKeyAU = json_decode(env('lastEvaluatedKeyAU'),true);
+        if(env('scanningDone')){
+          exit();
+        }
+
         //print "<pre>";print_r($this->lastEvaluatedKeyAU);print_r($this->allUsers);exit();
         do {
           $result = $this->scanWithLast($this->tableNameAU, $this->scanFilterAU, $this->attributesToGetAU, $this->lastEvaluatedKeyAU);
           $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
-          $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
           $itemsAU = $result->get('Items');
           $resultSizeAU = $result->get('Count');
           //sleep(2);
-          echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
+          //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
-
+        if(count($this->lastEvaluatedKeyAU) > 1) {
+          $this->changeEnv(['lastEvaluatedKeyAU' => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+        }
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
 
           foreach ($itemsAU as $item) {
@@ -118,7 +123,7 @@ class DynamoDBController extends Controller
             }
           }
 
-          if (count($this->lastEvaluatedKeyAU) > 0) {
+          if (count($this->lastEvaluatedKeyAU) > 1) {
             $this->scanFilterA = array();
             $this->scanFilterD = array();
             try {
@@ -126,14 +131,26 @@ class DynamoDBController extends Controller
               $itemsAU = $result->get('Items');
               $resultSizeAU = $result->get('Count');
               $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
-              $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+              if($this->lastEvaluatedKeyAU == null) {
+                $this->changeEnv(['scanningDone' => 1]);
+                exit();
+              }
+              if(count($this->lastEvaluatedKeyAU) > 1) {
+                $this->changeEnv(['lastEvaluatedKeyAU' => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+              }
             } catch (Exception $e) {
               sleep(5);
               $result = $this->scanWithLast($this->tableNameAU, $this->scanFilterAU, $this->attributesToGetAU, $this->lastEvaluatedKeyAU);
               $itemsAU = $result->get('Items');
               $resultSizeAU = $result->get('Count');
               $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
-              $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+              if($this->lastEvaluatedKeyAU == null) {
+                $this->changeEnv(['scanningDone' => 1]);
+                exit();
+              }
+              if(count($this->lastEvaluatedKeyAU) > 1) {
+                $this->changeEnv(['lastEvaluatedKeyAU' => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+              }
             }
             $i = 0;
             $this->users = array();
@@ -256,6 +273,10 @@ class DynamoDBController extends Controller
           exit();
         }
 
+        if(env('scanningDone')){
+          exit();
+        }
+
         $this->tableNameBase = $this->enviromentPrefix.$this->tableNameBase;
         $this->tableNameAU = $this->tableNameBase."archives-Users";
         $this->tableNameA = $this->tableNameBase."archives";
@@ -280,16 +301,17 @@ class DynamoDBController extends Controller
           $this->s3->waitUntil('BucketExists', array('Bucket' => $bucket));
         }
 
-        //$this->scanFilterAU["organisation"]["AttributeValueList"] = array(array('S'=>$this->organisation));
-        //$this->scanFilterAU["organisation"]["ComparisonOperator"] = "EQ";
+        $this->scanFilterAU["organisation"]["AttributeValueList"] = array(array('S'=>$this->organisation));
+        $this->scanFilterAU["organisation"]["ComparisonOperator"] = "EQ";
 
         $usersFilter = array();
         foreach ($users as $user){
           $usersFilter[] = array('S'=>$user);
         }
-        $this->scanFilterAU["user"]["AttributeValueList"] = $usersFilter;//array(array('S'=>$this->organisation));
-        $this->scanFilterAU["user"]["ComparisonOperator"] = "IN";
-
+        if(count($usersFilter) > 0) {
+          $this->scanFilterAU["user"]["AttributeValueList"] = $usersFilter;//array(array('S'=>$this->organisation));
+          $this->scanFilterAU["user"]["ComparisonOperator"] = "IN";
+        }
 
         $this->allUsers = json_decode(env('allUsers'),true);
         $this->lastEvaluatedKeyAU = json_decode(env('lastEvaluatedKeyAU'),true);
@@ -301,7 +323,9 @@ class DynamoDBController extends Controller
           $resultSizeAU = $result->get('Count');
           //echo "<pre>$resultSizeAU";print_r($this->lastEvaluatedKeyAU); echo "</pre>";
         } while($this->lastEvaluatedKeyAU != null && $resultSizeAU==0);
-        $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+        if(count($this->lastEvaluatedKeyAU) > 1) {
+          $this->changeEnv(['lastEvaluatedKeyAU' => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+        }
 
 
         for ($i = 0; $i < $resultSizeAU && $resultSizeAU; $i++) {
@@ -355,20 +379,21 @@ class DynamoDBController extends Controller
                   else {
                     $this->allUsers[$this->organisation][$user]['emails'] = 1;
                   }
-                  //if(!$this->s3->doesObjectExist($bucket, $orgID . '_/' . $user . '/' . $state . '/' . $emlFileName . '.eml')) {
+                  if(!$this->s3->doesObjectExist($bucket, $orgID . '/' . $user . '/' . $state . '/' . $emlFileName . '.eml')) {
                     $this->s3->copyObject([
                       'Bucket' => $bucket,
-                      'Key' => $orgID . '_/' . $user . '/' . $state . '/' . $emlFileName . '.eml',
+                      'Key' => $orgID . '/' . $user . '/' . $state . '/' . $emlFileName . '.eml',
                       'CopySource' => $this->enviromentPrefix . 'hotstore/default/' . $emlFileName,
                     ]);
-                  //}
-                  $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
+                    $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
+                  }
+
                 }
               }
             }
           }
 
-          if (count($this->lastEvaluatedKeyAU) > 0) {
+          if (count($this->lastEvaluatedKeyAU) > 1) {
             $this->scanFilterA = array();
             $this->scanFilterD = array();
             try {
@@ -376,14 +401,25 @@ class DynamoDBController extends Controller
               $itemsAU = $result->get('Items');
               $resultSizeAU = $result->get('Count');
               $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
-              $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+              if($this->lastEvaluatedKeyAU == null) {
+                $this->changeEnv(['scanningDone' => 1]);
+              }
+              if(count($this->lastEvaluatedKeyAU) > 1) {
+                $this->changeEnv(['lastEvaluatedKeyAU' => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+              }
             } catch (Exception $e) {
               sleep(5);
               $result = $this->scanWithLast($this->tableNameAU, $this->scanFilterAU, $this->attributesToGetAU, $this->lastEvaluatedKeyAU);
               $itemsAU = $result->get('Items');
               $resultSizeAU = $result->get('Count');
               $this->lastEvaluatedKeyAU = $result->get('LastEvaluatedKey');
-              $this->changeEnv(['lastEvaluatedKeyAU'   => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+              if($this->lastEvaluatedKeyAU == null) {
+                $this->changeEnv(['scanningDone' => 1]);
+                exit();
+              }
+              if(count($this->lastEvaluatedKeyAU) > 1) {
+                $this->changeEnv(['lastEvaluatedKeyAU' => \GuzzleHttp\json_encode($this->lastEvaluatedKeyAU)]);
+              }
             }
             $i = 0;
             $this->users = array();
