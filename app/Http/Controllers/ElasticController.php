@@ -82,7 +82,7 @@ class ElasticController {
 
     if($response != null && isset($response->hits->hits) && count($response->hits->hits)) {
       $this->currentStartingPoint += $this->size;
-      $this->changeEnv(['CURRENT_STARTING_POINT'   => $this->currentStartingPoint]);
+      $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => $this->currentStartingPoint]);
       $this->scanFilterD = array();
       $foundEmails = array();
 
@@ -125,10 +125,10 @@ class ElasticController {
         }
       }
 
-      $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
+      $this->dynamoDBObj->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
     }
 
-    $this->changeEnv(['scanningDone'   => 1]);
+    $this->dynamoDBObj->changeEnv(['scanningDone'   => 1]);
     exit();
   }
 }
