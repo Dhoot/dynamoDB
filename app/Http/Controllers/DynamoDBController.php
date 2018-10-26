@@ -203,7 +203,7 @@ class DynamoDBController extends Controller
         return $this->dynamo->Query($request);//getItem($request);
     }
 
-    function batchGetItem($tableName, $queryFilter, $attributesToGet) {
+    public function batchGetItem($tableName, $queryFilter, $attributesToGet) {
 
       //querying table
       $request["AttributesToGet"] = $attributesToGet;

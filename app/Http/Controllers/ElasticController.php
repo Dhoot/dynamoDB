@@ -24,8 +24,11 @@ class ElasticController {
   /*org Users */
   private $users = array();
   private $allUsers = array();
+  private $tableNameA = "";
   private $tableNameD = "";
+  private $attributesToGetA = array( "data", "fingerprint", "instance");
   private $attributesToGetD = array( "id", "length", "hotStoreLocation");
+  private $scanFilterA = array();
   private $scanFilterD = array();
 
 
@@ -38,8 +41,19 @@ class ElasticController {
 
     $this->tableNameBase = $this->environmentPrefix.$this->tableNameBase;
     $this->tableNameD = $this->tableNameBase."datas";
+    $this->tableNameD = $this->tableNameBase."archives";
     $this->dynamoDBObj = new DynamoDBController();
     $this->s3 = AWS::createClient('s3');
+
+    //Create Bucket
+    $bucket = $this->environmentPrefix.'backup';
+    if(!$this->s3->doesBucketExist($bucket)) {
+      $this->s3->createBucket(array(
+        'Bucket' => $bucket
+      ));
+
+      $this->s3->waitUntil('BucketExists', array('Bucket' => $bucket));
+    }
   }
 
   private function callApi($url, $options){
@@ -85,9 +99,21 @@ class ElasticController {
       $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => $this->currentStartingPoint]);
       $this->scanFilterD = array();
       $foundEmails = array();
+      $this->scanFilterA = array();
 
       foreach ($response->hits->hits as $eResult){
-        $this->scanFilterD[] = ["id" => ['S' => $eResult->_id]];
+
+        $archive = explode("|", $eResult->_id);
+        if (strlen($archive[0]) == 0) {
+          continue;
+        }
+
+        $this->scanFilterA[] = [
+          "fingerprint" => ['S' => $archive[0]],
+          "instance" => ['S' => $archive[1]]
+        ];
+
+
         if (isset( $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'])) {
           $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'] += 1;
         }
@@ -104,6 +130,15 @@ class ElasticController {
           $foundEmails[$eResult->_id]['state'] = 'SENT';
         }
 
+      }
+
+
+      $result = $this->dynamoDBObj->batchGetItem($this->tableNameA, $this->scanFilterA, $this->attributesToGetA);
+      $item = $result->get('Responses');
+      $itemsA = $item[$this->tableNameA];
+
+      foreach ($itemsA as $item) {
+        $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
       }
 
       $result = $this->dynamoDBObj->batchGetItem($this->tableNameD, $this->scanFilterD, $this->attributesToGetD);
