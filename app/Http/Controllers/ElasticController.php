@@ -57,7 +57,7 @@ class ElasticController {
       $this->users = $givenUsers;
     }
     exec('ps aux | grep "inspire" | grep -v grep', $pids);
-    if (count($pids) > 2) {
+    if (count($pids) > 2 || env('scanningDone') == 1) {
       exit();
     }
     $url = 'http://'.$this->elasticBaseUrl.'/'.$this->organisation.'-v0/EMAIL/_search';
@@ -125,6 +125,7 @@ class ElasticController {
       }
 
       $this->dynamoDBObj->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
+      $this->index();
     }
 
     $this->dynamoDBObj->changeEnv(['scanningDone'   => 1]);
