@@ -216,7 +216,7 @@ class DynamoDBController extends Controller
         return $this->dynamo->BatchGetItem($req);//getItem($request);
     }
 
-    protected function changeEnv($data = array()){
+    public function changeEnv($data = array()){
       if(count($data) > 0){
 
         // Read .env-file
