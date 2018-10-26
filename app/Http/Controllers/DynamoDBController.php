@@ -32,6 +32,11 @@ class DynamoDBController extends Controller
     public function __construct() {
       $this->organisation = env('ORGANISATION');//"demolab";
       $this->environmentPrefix = env('ENVIRONMENT_PREFIX');//"mailsphere-test-default-";
+      //DynamoDB
+      $this->dynamo = AWS::createClient('DynamoDb');
+
+      //S3
+      $this->s3 = AWS::createClient('s3');
     }
 
 
@@ -48,9 +53,6 @@ class DynamoDBController extends Controller
         $this->tableNameD = $this->tableNameBase."datas";
 
         $this->allUsers[$this->organisation] = array();
-
-        //DynamoDB
-        $this->dynamo = AWS::createClient('DynamoDb');
 
 
         $this->scanFilterAU["organisation"]["AttributeValueList"] = array(array('S'=>$this->organisation));
@@ -289,12 +291,6 @@ class DynamoDBController extends Controller
 
         $this->allUsers[$this->organisation] = array();
         $lastEvaluatedKey = null;
-
-        //DynamoDB
-        $this->dynamo = AWS::createClient('DynamoDb');
-
-        //S3
-        $this->s3 = AWS::createClient('s3');
 
         //Create Bucket
         $bucket = $this->environmentPrefix.'backup';
