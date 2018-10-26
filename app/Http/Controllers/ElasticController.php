@@ -87,7 +87,6 @@ class ElasticController {
       $foundEmails = array();
 
       foreach ($response->hits->hits as $eResult){
-        $eResult->fields->tos;
         $this->scanFilterD[] = ["id" => ['S' => $eResult->_id]];
         if (isset( $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'])) {
           $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'] += 1;
