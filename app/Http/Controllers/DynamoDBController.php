@@ -11,8 +11,8 @@ class DynamoDBController extends Controller
 {
     private $dynamo;
     private $s3;
-    private $organisation = "sS41TUi9WQAo4Zdz7cs3";//"demolab";
-    private $enviromentPrefix = "mailsphere-live-internal-";//"mailsphere-test-default-";
+    private $organisation = "";
+    private $environmentPrefix = "";
     private $tableNameBase = "index-";
     private $tableNameAU = "";
     private $tableNameA = "";
@@ -29,6 +29,11 @@ class DynamoDBController extends Controller
     private $allUsers;
     private $users = array();
 
+    public function __construct() {
+      $this->organisation = env('ORGANISATION');//"demolab";
+      $this->environmentPrefix = env('ENVIRONMENT_PREFIX');//"mailsphere-test-default-";
+    }
+
 
     public function index() {
 
@@ -37,7 +42,7 @@ class DynamoDBController extends Controller
           exit();
         }
 
-        $this->tableNameBase = $this->enviromentPrefix.$this->tableNameBase;
+        $this->tableNameBase = $this->environmentPrefix.$this->tableNameBase;
         $this->tableNameAU = $this->tableNameBase."archives-Users";
         $this->tableNameA = $this->tableNameBase."archives";
         $this->tableNameD = $this->tableNameBase."datas";
@@ -251,7 +256,7 @@ class DynamoDBController extends Controller
       }
     }
 
-    function in_array_r($needle, $haystack, $strict = false) {
+    public function in_array_r($needle, $haystack, $strict = false) {
       foreach ($haystack as $item) {
         if (($strict ? $item === $needle : $item == $needle) || (is_array($item) && $this->in_array_r($needle, $item, $strict))) {
           return true;
@@ -277,7 +282,7 @@ class DynamoDBController extends Controller
           exit();
         }
 
-        $this->tableNameBase = $this->enviromentPrefix.$this->tableNameBase;
+        $this->tableNameBase = $this->environmentPrefix.$this->tableNameBase;
         $this->tableNameAU = $this->tableNameBase."archives-Users";
         $this->tableNameA = $this->tableNameBase."archives";
         $this->tableNameD = $this->tableNameBase."datas";
@@ -292,7 +297,7 @@ class DynamoDBController extends Controller
         $this->s3 = AWS::createClient('s3');
 
         //Create Bucket
-        $bucket = $this->enviromentPrefix.'backup';
+        $bucket = $this->environmentPrefix.'backup';
         if(!$this->s3->doesBucketExist($bucket)) {
           $this->s3->createBucket(array(
             'Bucket' => $bucket
@@ -384,7 +389,7 @@ class DynamoDBController extends Controller
                     $this->s3->copyObject([
                       'Bucket' => $bucket,
                       'Key' => $orgID . '/' . $user . '/' . $state . '/' . $emlFileName . '.eml',
-                      'CopySource' => $this->enviromentPrefix . 'hotstore/default/' . $emlFileName,
+                      'CopySource' => $this->environmentPrefix . 'hotstore/default/' . $emlFileName,
                     ]);
                     $this->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
                   }
