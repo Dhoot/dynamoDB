@@ -104,7 +104,9 @@ class ElasticController {
 
       foreach ($response->hits->hits as $eResult){
 
-        $archive = explode("|", $eResult->_id);
+        $parts = explode('|', $eResult->_id);
+        $last = array_pop($parts);
+        $archive = array(implode('|', $parts), $last);
         if (strlen($archive[0]) == 0) {
           continue;
         }
