@@ -101,7 +101,6 @@ class ElasticController {
 
     if($response != null && isset($response->hits->hits) && count($response->hits->hits)) {
       $this->currentStartingPoint += $this->size;
-      $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => $this->currentStartingPoint]);
 
       foreach ($response->hits->hits as $eResult){
 
@@ -183,6 +182,7 @@ class ElasticController {
         }
       }
 
+      $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => $this->currentStartingPoint]);
       $this->dynamoDBObj->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
       $this->index();
     }
