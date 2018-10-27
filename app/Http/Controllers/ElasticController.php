@@ -108,10 +108,15 @@ class ElasticController {
           continue;
         }
 
-        $this->scanFilterA[] = [
-          "fingerprint" => ['S' => $archive[0]],
-          "instance" => ['S' => $archive[1]]
-        ];
+        foreach ($this->scanFilterA as $filter) {
+          if(!($filter['fingerprint']['S'] == $archive[0] && $filter['instance']['S'] == $archive[1])) {
+            $this->scanFilterA[] = [
+              'fingerprint' => ['S' => $archive[0]],
+              'instance' => ['S' => $archive[1]]
+            ];
+          }
+        }
+
 
         if (isset( $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'])) {
           $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'] += 1;
@@ -137,9 +142,13 @@ class ElasticController {
       $itemsA = $item[$this->tableNameA];
 
       foreach ($itemsA as $item) {
-        $foundEmails[$item['data']['S']] = $foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']];
-        unset($foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']]);
-        $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
+        foreach ($this->scanFilterD as $filter) {
+          if($filter['data']['S'] != $item['data']['S']) {
+            $foundEmails[$item['data']['S']] = $foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']];
+            unset($foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']]);
+            $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
+          }
+        }
       }
 
       $result = $this->dynamoDBObj->batchGetItem($this->tableNameD, $this->scanFilterD, $this->attributesToGetD);
