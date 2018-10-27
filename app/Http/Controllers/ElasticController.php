@@ -37,7 +37,7 @@ class ElasticController {
     $this->organisation = strtolower(env('ORGANISATION')); //"demolab";
     $this->environmentPrefix = env('ENVIRONMENT_PREFIX'); //"mailsphere-test-default-";
     $this->currentStartingPoint = env('CURRENT_STARTING_POINT');
-    $this->currentStartingPoint = env('BATCH_SIZE');
+    $this->size = env('BATCH_SIZE');
 
     $this->tableNameBase = $this->environmentPrefix.$this->tableNameBase;
     $this->tableNameA = $this->tableNameBase."archives";
@@ -94,12 +94,14 @@ class ElasticController {
 
     $response = json_decode($this->callApi($url, $options));
 
+
+    $this->scanFilterD = array();
+    $foundEmails = array();
+    $this->scanFilterA = array();
+
     if($response != null && isset($response->hits->hits) && count($response->hits->hits)) {
       $this->currentStartingPoint += $this->size;
       $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => $this->currentStartingPoint]);
-      $this->scanFilterD = array();
-      $foundEmails = array();
-      $this->scanFilterA = array();
 
       foreach ($response->hits->hits as $eResult){
 
