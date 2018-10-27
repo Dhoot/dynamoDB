@@ -110,18 +110,18 @@ class ElasticController {
           continue;
         }
 
-        if(!count($this->scanFilterA)) {
-          $this->scanFilterA[] = [
-            'fingerprint' => ['S' => $archive[0]],
-            'instance' => ['S' => $archive[1]]
-          ];
-        }
-        foreach ($this->scanFilterA as $filter) {
-          if(!($filter['fingerprint']['S'] == $archive[0] && $filter['instance']['S'] == $archive[1])) {
-            $this->scanFilterA[] = [
-              'fingerprint' => ['S' => $archive[0]],
-              'instance' => ['S' => $archive[1]]
-            ];
+        $this->scanFilterA[] = [
+          'fingerprint' => ['S' => $archive[0]],
+          'instance' => ['S' => $archive[1]]
+        ];
+
+
+        foreach ($this->scanFilterA as $k => $filter) {
+          if($k < count($this->scanFilterA) - 1) {
+            if ($filter['fingerprint']['S'] == $archive[0] && $filter['instance']['S'] == $archive[1]) {
+              unset($this->scanFilterA[$k]);
+              continue;
+            }
           }
         }
 
@@ -151,15 +151,15 @@ class ElasticController {
 
       foreach ($itemsA as $item) {
 
-        if(!count($this->scanFilterD)) {
-          $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
-        }
+        $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
+        $foundEmails[$item['data']['S']] = $foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']];
 
-        foreach ($this->scanFilterD as $filter) {
-          if($filter['data']['S'] != $item['data']['S']) {
-            $foundEmails[$item['data']['S']] = $foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']];
-            unset($foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']]);
-            $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
+        foreach ($this->scanFilterD as $k => $filter) {
+          if($k < count($this->scanFilterD) - 1) {
+            if ($filter['data']['S'] != $item['data']['S']) {
+              unset($foundEmails[$filter['data']['S']]);
+              unset($this->scanFilterD[$k]);
+            }
           }
         }
       }
