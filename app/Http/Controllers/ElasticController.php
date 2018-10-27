@@ -70,7 +70,7 @@ class ElasticController {
     if(count($givenUsers) > 0) {
       $this->users = $givenUsers;
     }
-    exec('ps aux | grep "inspire" | grep -v grep', $pids);
+    exec('ps aux | grep "backup-elastic" | grep -v grep', $pids);
     if (count($pids) > 2 || env('scanningDone') == 1) {
       exit();
     }
