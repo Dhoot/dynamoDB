@@ -153,6 +153,7 @@ class ElasticController {
 
         $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
         $foundEmails[$item['data']['S']] = $foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']];
+        unset($foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']]);
 
         foreach ($this->scanFilterD as $k => $filter) {
           if($k < count($this->scanFilterD) - 1) {
