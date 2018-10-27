@@ -26,7 +26,7 @@ class ElasticController {
   private $allUsers = array();
   private $tableNameA = "";
   private $tableNameD = "";
-  private $attributesToGetA = array( "data");
+  private $attributesToGetA = array( "data", "fingerprint", "instance");
   private $attributesToGetD = array( "id", "length", "hotStoreLocation");
   private $scanFilterA = array();
   private $scanFilterD = array();
@@ -137,6 +137,8 @@ class ElasticController {
       $itemsA = $item[$this->tableNameA];
 
       foreach ($itemsA as $item) {
+        $foundEmails[$item['data']['S']] = $foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']];
+        unset($foundEmails[$item['fingerprint']['S']."|".$item['instance']['S']]);
         $this->scanFilterD[] = ["id" => ['S' => $item['data']['S']]];
       }
 
