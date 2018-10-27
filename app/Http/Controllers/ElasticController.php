@@ -26,7 +26,7 @@ class ElasticController {
   private $allUsers = array();
   private $tableNameA = "";
   private $tableNameD = "";
-  private $attributesToGetA = array( "data", "fingerprint", "instance");
+  private $attributesToGetA = array( "data");
   private $attributesToGetD = array( "id", "length", "hotStoreLocation");
   private $scanFilterA = array();
   private $scanFilterD = array();
@@ -40,8 +40,8 @@ class ElasticController {
     $this->currentStartingPoint = env('BATCH_SIZE');
 
     $this->tableNameBase = $this->environmentPrefix.$this->tableNameBase;
+    $this->tableNameA = $this->tableNameBase."archives";
     $this->tableNameD = $this->tableNameBase."datas";
-    $this->tableNameD = $this->tableNameBase."archives";
     $this->dynamoDBObj = new DynamoDBController();
     $this->s3 = AWS::createClient('s3');
 
@@ -112,7 +112,6 @@ class ElasticController {
           "fingerprint" => ['S' => $archive[0]],
           "instance" => ['S' => $archive[1]]
         ];
-
 
         if (isset( $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'])) {
           $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'] += 1;
