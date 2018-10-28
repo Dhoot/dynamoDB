@@ -122,7 +122,7 @@ class ElasticController {
           if($k < count($this->scanFilterA) - 1) {
             if ($filter['fingerprint']['S'] == $archive[0] && $filter['instance']['S'] == $archive[1]) {
               unset($this->scanFilterA[$k]);
-              continue;
+              break;
             }
           }
         }
@@ -162,6 +162,7 @@ class ElasticController {
             if ($filter['id']['S'] == $item['data']['S']) {
               unset($foundEmails[$filter['id']['S']]);
               unset($this->scanFilterD[$k]);
+              break;
             }
           }
         }
