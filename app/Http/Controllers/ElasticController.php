@@ -160,7 +160,6 @@ class ElasticController {
         foreach ($this->scanFilterD as $k => $filter) {
           if($k < count($this->scanFilterD) - 1) {
             if ($filter['id']['S'] == $item['data']['S']) {
-              unset($foundEmails[$filter['id']['S']]);
               unset($this->scanFilterD[$k]);
               break;
             }
