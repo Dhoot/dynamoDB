@@ -38,7 +38,7 @@ class ElasticController {
     $this->environmentPrefix = env('ENVIRONMENT_PREFIX'); //"mailsphere-test-default-";
     $this->currentStartingPoint = env('CURRENT_STARTING_POINT');
     $this->size = env('BATCH_SIZE');
-    $this->allUsers = json_decode(env('allUsers', true));
+    $this->allUsers = json_decode(env('allUsers'),true);
 
     $this->tableNameBase = $this->environmentPrefix.$this->tableNameBase;
     $this->tableNameA = $this->tableNameBase."archives";
