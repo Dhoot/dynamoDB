@@ -146,7 +146,7 @@ class ElasticController {
 
       }
 
-      $this->scanFilterA = array_map('array_values', $this->scanFilterA);
+      $this->scanFilterA = array_values($this->scanFilterA);
       $result = $this->dynamoDBObj->batchGetItem($this->tableNameA, $this->scanFilterA, $this->attributesToGetA);
       $item = $result->get('Responses');
       $itemsA = $item[$this->tableNameA];
@@ -168,7 +168,7 @@ class ElasticController {
         }
       }
 
-      $this->scanFilterD = array_map('array_values', $this->scanFilterD);
+      $this->scanFilterD = array_values($this->scanFilterA);
       $result = $this->dynamoDBObj->batchGetItem($this->tableNameD, $this->scanFilterD, $this->attributesToGetD);
       $item = $result->get('Responses');
       $itemsD = $item[$this->tableNameD];
