@@ -80,18 +80,18 @@ class ElasticController {
     foreach ($this->users as $userId => $user) {
       $currnetUser = env('CURRENT_USER');
       if($userId == $currnetUser) {
-        $this->indexExec($givenUsers, $user, $userId);
+        $this->indexExec($user, $userId);
       } else {
         $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT' => 0]);
         $this->dynamoDBObj->changeEnv(['CURRENT_USER' => $userId]);
-        $this->indexExec($givenUsers, $user, $userId);
+        $this->indexExec($user, $userId);
       }
     }
     $this->dynamoDBObj->changeEnv(['scanningDone'   => 1]);
     exit();
   }
 
-  private function indexExec($givenUsers = array(), $user= array(), $userId = null) {
+  private function indexExec($User= array(), $userId = null) {
 
     $url = 'http://'.$this->elasticBaseUrl.'/'.$this->organisation.'-v0/EMAIL/_search';
     $options['headers'] = array('Content-Type' => 'application/json');
@@ -168,7 +168,7 @@ class ElasticController {
         if(isset($eResult->fields->spam) && isset($eResult->fields->spam[0]) && $eResult->fields->spam[0] == true) {
           $foundEmails[$eResult->_id]['state'] = 'SPAM_INBOX';
         }
-        else if(isset($eResult->fields->from) && isset($eResult->fields->from[0]) && $this->dynamoDBObj->in_array_r($eResult->fields->from[0], $user)) {
+        else if(isset($eResult->fields->from) && isset($eResult->fields->from[0]) && $this->dynamoDBObj->in_array_r($eResult->fields->from[0], $User)) {
           $foundEmails[$eResult->_id]['state'] = 'SENT';
         }
 
@@ -216,7 +216,7 @@ class ElasticController {
 
       $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => $this->currentStartingPoint]);
       $this->dynamoDBObj->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
-      $this->indexExec();
+      $this->indexExec($User, $userId);
     }
   }
 }
