@@ -78,8 +78,14 @@ class ElasticController {
     }
 
     foreach ($this->users as $userId => $user) {
-      $this->indexExec($givenUsers, $user, $userId);
-      $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => 0]);
+      $currnetUser = env('CURRENT_USER');
+      if($userId == $currnetUser) {
+        $this->indexExec($givenUsers, $user, $userId);
+      } else {
+        $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT' => 0]);
+        $this->dynamoDBObj->changeEnv(['CURRENT_USER' => $userId]);
+        $this->indexExec($givenUsers, $user, $userId);
+      }
     }
     $this->dynamoDBObj->changeEnv(['scanningDone'   => 1]);
     exit();
