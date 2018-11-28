@@ -22,7 +22,7 @@ class ElasticController {
   private $environmentPrefix = "";
   private $tableNameBase = "index-";
   /*org Users */
-  private $users = array();
+  private $users = array('zTAAmhN9NVT8WPUpqOKF'=>array('andybray@bimm.co.uk','andybray2@bimm.co.uk'));
   private $allUsers = array();
   private $tableNameA = "";
   private $tableNameD = "";
@@ -67,7 +67,7 @@ class ElasticController {
   }
 
   public function index($givenUsers = array()) {
-
+    $userId = 'zTAAmhN9NVT8WPUpqOKF';
     if(count($givenUsers) > 0) {
       $this->users = $givenUsers;
     }
@@ -81,6 +81,17 @@ class ElasticController {
     $bodyObj->fields =  array('ownerIds', 'spam', 'from');
     $bodyObj->size =  $this->size;
     $bodyObj->from =  $this->currentStartingPoint;
+    $bodyObj->query =  new \stdClass();
+    $bodyObj->query->bool =  new \stdClass();
+    $bodyObj->query->bool->must =  array();
+    $bodyObj->query->bool->must[] = new \stdClass();
+    $bodyObj->query->bool->must[0]->range = new \stdClass();
+    $bodyObj->query->bool->must[0]->range->date = new \stdClass();
+    $bodyObj->query->bool->must[0]->range->date->gte = '2017-03-11T00:00:00.000Z';
+    $bodyObj->query->bool->must[0]->range->date->lte = '2018-10-24T00:00:00.000Z';
+    $bodyObj->query->bool->must[] = new \stdClass();
+    $bodyObj->query->bool->must[1]->match = new \stdClass();
+    $bodyObj->query->bool->must[1]->match->ownerIds = $userId;
     /*$bodyObj->aggs =  new \stdClass();
     $bodyObj->aggs->by_userId = new \stdClass();
     $bodyObj->aggs->by_userId->terms = new \stdClass();
@@ -92,7 +103,6 @@ class ElasticController {
     $bodyObj->aggs->by_userId->aggs->total_size->sum->field = 'messageSize';*/
 
     $options['body'] = json_encode($bodyObj);
-
     $response = json_decode($this->callApi($url, $options));
 
 
@@ -128,15 +138,15 @@ class ElasticController {
         }
 
 
-        if (isset( $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'])) {
-          $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'] += 1;
+        if (isset( $this->allUsers[$this->organisation][$userId]['emails'])) {
+          $this->allUsers[$this->organisation][$userId]['emails'] += 1;
         }
         else {
-          $this->allUsers[$this->organisation][$eResult->fields->ownerIds[0]]['emails'] = 1;
+          $this->allUsers[$this->organisation][$userId]['emails'] = 1;
         }
 
         $foundEmails[$eResult->_id]['state'] = 'INBOX';
-        $foundEmails[$eResult->_id]['user'] = isset($eResult->fields->ownerIds[0]) ? $eResult->fields->ownerIds[0] : 'Unknown';
+        $foundEmails[$eResult->_id]['user'] = isset($eResult->fields->ownerIds[0]) ? $userId : 'Unknown';
         if(isset($eResult->fields->spam) && isset($eResult->fields->spam[0]) && $eResult->fields->spam[0] == true) {
           $foundEmails[$eResult->_id]['state'] = 'SPAM_INBOX';
         }
