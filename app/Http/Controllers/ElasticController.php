@@ -22,7 +22,7 @@ class ElasticController {
   private $environmentPrefix = "";
   private $tableNameBase = "index-";
   /*org Users */
-  private $users = array('zTAAmhN9NVT8WPUpqOKF'=>array('andybray@bimm.co.uk','andybray2@bimm.co.uk'));
+  private $users = array();
   private $allUsers = array();
   private $tableNameA = "";
   private $tableNameD = "";
@@ -66,8 +66,9 @@ class ElasticController {
     return null;
   }
 
+
   public function index($givenUsers = array()) {
-    $userId = 'zTAAmhN9NVT8WPUpqOKF';
+
     if(count($givenUsers) > 0) {
       $this->users = $givenUsers;
     }
@@ -75,6 +76,17 @@ class ElasticController {
     if (count($pids) > 2 || env('scanningDone') == 1) {
       exit();
     }
+
+    foreach ($this->users as $userId => $user) {
+      $this->indexExec($givenUsers, $user, $userId);
+      $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => 0]);
+    }
+    $this->dynamoDBObj->changeEnv(['scanningDone'   => 1]);
+    exit();
+  }
+
+  private function indexExec($givenUsers = array(), $user= array(), $userId = null) {
+
     $url = 'http://'.$this->elasticBaseUrl.'/'.$this->organisation.'-v0/EMAIL/_search';
     $options['headers'] = array('Content-Type' => 'application/json');
     $bodyObj = new \stdClass();
@@ -150,7 +162,7 @@ class ElasticController {
         if(isset($eResult->fields->spam) && isset($eResult->fields->spam[0]) && $eResult->fields->spam[0] == true) {
           $foundEmails[$eResult->_id]['state'] = 'SPAM_INBOX';
         }
-        else if(isset($eResult->fields->from) && isset($eResult->fields->from[0]) && $this->dynamoDBObj->in_array_r($eResult->fields->from[0], $this->users)) {
+        else if(isset($eResult->fields->from) && isset($eResult->fields->from[0]) && $this->dynamoDBObj->in_array_r($eResult->fields->from[0], $user)) {
           $foundEmails[$eResult->_id]['state'] = 'SENT';
         }
 
@@ -198,10 +210,7 @@ class ElasticController {
 
       $this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT'   => $this->currentStartingPoint]);
       $this->dynamoDBObj->changeEnv(['allUsers'   => \GuzzleHttp\json_encode($this->allUsers)]);
-      $this->index();
+      $this->indexExec();
     }
-
-    $this->dynamoDBObj->changeEnv(['scanningDone'   => 1]);
-    exit();
   }
 }
