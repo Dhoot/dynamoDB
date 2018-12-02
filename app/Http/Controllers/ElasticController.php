@@ -120,16 +120,10 @@ class ElasticController {
     $bodyObj->query->bool->must[2]->bool->should = array();
     $bodyObj->query->bool->must[2]->bool->should[0] = new \stdClass();
     $bodyObj->query->bool->must[2]->bool->should[0]->term = new \stdClass();
-    $bodyObj->query->bool->must[2]->bool->should[0]->term->body = "jarto";
+    $bodyObj->query->bool->must[2]->bool->should[0]->term->body = "text1";
     $bodyObj->query->bool->must[2]->bool->should[1] = new \stdClass();
     $bodyObj->query->bool->must[2]->bool->should[1]->term = new \stdClass();
-    $bodyObj->query->bool->must[2]->bool->should[1]->term->body = "cameron";
-    $bodyObj->query->bool->must[2]->bool->should[2] = new \stdClass();
-    $bodyObj->query->bool->must[2]->bool->should[2]->term = new \stdClass();
-    $bodyObj->query->bool->must[2]->bool->should[2]->term->body = "kc";
-    $bodyObj->query->bool->must[2]->bool->should[3] = new \stdClass();
-    $bodyObj->query->bool->must[2]->bool->should[3]->term = new \stdClass();
-    $bodyObj->query->bool->must[2]->bool->should[3]->term->body = "kate";
+    $bodyObj->query->bool->must[2]->bool->should[1]->term->body = "text2";
     /*$bodyObj->aggs =  new \stdClass();
     $bodyObj->aggs->by_userId = new \stdClass();
     $bodyObj->aggs->by_userId->terms = new \stdClass();
@@ -141,7 +135,6 @@ class ElasticController {
     $bodyObj->aggs->by_userId->aggs->total_size->sum->field = 'messageSize';*/
 
     $options['body'] = json_encode($bodyObj);
-    print $options['body'];exit();
     $response = json_decode($this->callApi($url, $options));
 
 
