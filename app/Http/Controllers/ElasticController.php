@@ -8,6 +8,7 @@
 namespace App\Http\Controllers;
 
 use GuzzleHttp\Client;
+use MongoDB\Client AS MongoClient;
 use AWS;
 
 
@@ -69,12 +70,34 @@ class ElasticController {
 
   public function index($givenUsers = array()) {
 
-    if(!empty($givenUsers)) {
-      $this->users = $givenUsers;
-    } else {
+    if(empty($givenUsers)) {
       //get all users from mongo
 
+      $uri =  'mongodb://'.env('MONGO_USERNAME').':'.env('MONGO_PASSWORD').'@'.env('MONGO_HOST','localhost:27017');
+      $uri = 'mongodb://'.env('MONGO_HOST','localhost:27017').'/';
+      $client = new MongoClient($uri);
+      $collection = $client->{env('MONGO_DATABASE')}->users;
+      $query = [
+        'organisation' => 'mailsphere'
+      ];
+
+      $options = [
+        'projection' => [
+          'emails' => '$emails'
+        ]
+      ];
+
+      $cursor = $collection->find($query, $options);
+
+      foreach ($cursor as $document) {
+        $dataObj = $document->jsonSerialize();
+        $arr = $dataObj->emails->jsonSerialize();
+        if(!empty($arr))
+          $givenUsers[$dataObj->_id] = $arr;
+      }
     }
+
+    $this->users = $givenUsers;
     exec('ps aux | grep "backup-elastic" | grep -v grep', $pids);
     if (count($pids) > 2 || env('scanningDone') == 1) {
       exit();
@@ -181,7 +204,7 @@ class ElasticController {
         }
 
         $foundEmails[$eResult->_id]['state'] = 'INBOX';
-        $foundEmails[$eResult->_id]['user'] = isset($eResult->fields->ownerIds[0]) ? $userId : 'Unknown';
+        $foundEmails[$eResult->_id]['user'] = in_array($userId, $eResult->fields->ownerIds) ? $userId : 'Unknown';
         if(isset($eResult->fields->spam) && isset($eResult->fields->spam[0]) && $eResult->fields->spam[0] == true) {
           $foundEmails[$eResult->_id]['state'] = 'SPAM_INBOX';
         }
