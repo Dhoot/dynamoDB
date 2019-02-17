@@ -69,8 +69,11 @@ class ElasticController {
 
   public function index($givenUsers = array()) {
 
-    if(count($givenUsers) > 0) {
+    if(!empty($givenUsers)) {
       $this->users = $givenUsers;
+    } else {
+      //get all users from mongo
+
     }
     exec('ps aux | grep "backup-elastic" | grep -v grep', $pids);
     if (count($pids) > 2 || env('scanningDone') == 1) {
@@ -105,7 +108,7 @@ class ElasticController {
     $bodyObj->from =  $this->currentStartingPoint;
     $bodyObj->query =  new \stdClass();
     $bodyObj->query->bool =  new \stdClass();
-    $bodyObj->query->bool->must =  array();
+    /*$bodyObj->query->bool->must =  array();
     $bodyObj->query->bool->must[] = new \stdClass();
     $bodyObj->query->bool->must[0]->range = new \stdClass();
     $bodyObj->query->bool->must[0]->range->date = new \stdClass();
