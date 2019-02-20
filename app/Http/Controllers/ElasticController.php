@@ -8,7 +8,7 @@
 namespace App\Http\Controllers;
 
 use GuzzleHttp\Client;
-use MongoDB\Client AS MongoClient;
+//use MongoDB\Client AS MongoClient;
 use AWS;
 
 
@@ -73,27 +73,22 @@ class ElasticController {
     if(empty($givenUsers)) {
       //get all users from mongo
 
-      $uri =  'mongodb://'.env('MONGO_USERNAME').':'.env('MONGO_PASSWORD').'@'.env('MONGO_HOST','localhost:27017');
-      $uri = 'mongodb://'.env('MONGO_HOST','localhost:27017').'/';
-      $client = new MongoClient($uri);
-      $collection = $client->{env('MONGO_DATABASE')}->users;
+      $uri =  'mongodb://'.env('MONGO_USERNAME').':'.env('MONGO_PASSWORD').'@'.env('MONGO_HOST','localhost:27017').'/'.env('MONGO_DATABASE');
+      //$uri = 'mongodb://'.env('MONGO_HOST','localhost:27017').'/';
+      $client = new \MongoClient($uri);
+      $collection = $client->selectCollection(env('MONGO_DATABASE'), "users");
       $query = [
-        'organisation' => 'mailsphere'
+        'organisation' => $this->organisation
       ];
 
       $options = [
-        'projection' => [
-          'emails' => '$emails'
-        ]
+        'emails' => true
       ];
-
       $cursor = $collection->find($query, $options);
 
       foreach ($cursor as $document) {
-        $dataObj = $document->jsonSerialize();
-        $arr = $dataObj->emails->jsonSerialize();
-        if(!empty($arr))
-          $givenUsers[$dataObj->_id] = $arr;
+        if(!empty($document['emails']))
+          $givenUsers[$document['_id']] = $document['emails'];
       }
     }
 
