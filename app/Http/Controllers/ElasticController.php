@@ -70,7 +70,7 @@ class ElasticController {
 	
 	public function index($givenUsers = array()) {
 		
-		exec('ps aux | grep "backup-elastic" | grep -v grep', $pids);
+		exec('ps aux | grep "dynamoDB/artisan backup-elastic" | grep -v grep', $pids);
 		if (count($pids) > 2 || env('scanningDone') == 1) {
 			exit();
 		}
@@ -99,14 +99,15 @@ class ElasticController {
 		$this->users = $givenUsers;
 		
 		foreach ($this->users as $userId => $user) {
-			$currnetUser = env('CURRENT_USER');
-			if($currnetUser == 'NEXT') {
-				$currnetUser = $userId;
+			$currentUser = env('CURRENT_USER');
+			if($currentUser == 'NEXT') {
+				$currentUser = $userId;
+				$this->dynamoDBObj->changeEnv(['CURRENT_USER'   => $currentUser]);
 			}
 			$this->allUsers = json_decode(env('allUsers'),true);
-			if(($currnetUser != null || $currnetUser != '' || $currnetUser != '0') && $userId != $currnetUser && isset($this->allUsers[$this->organisation][$userId])) {
+			if(($currentUser != null || $currentUser != '' || $currentUser != '0') && $userId != $currentUser && isset($this->allUsers[$this->organisation][$userId])) {
 				continue;
-			} else if(($currnetUser != null || $currnetUser != '' || $currnetUser != '0') && $userId == $currnetUser) {
+			} else if(($currentUser != null || $currentUser != '' || $currentUser != '0') && $userId == $currentUser) {
 				$emailCount = $this->getElasticCount($userId);
 				if($emailCount==0) {
 					$this->allUsers[$this->organisation][$userId]['emails'] = 0;
