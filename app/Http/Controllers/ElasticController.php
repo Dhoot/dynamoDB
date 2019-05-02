@@ -116,6 +116,9 @@ class ElasticController {
 					$this->currentStartingPoint = 0;
 					continue;
 				}
+				if(isset($this->allUsers[$this->organisation][$userId]['emails'])) {
+					$this->currentStartingPoint = $this->allUsers[$this->organisation][$userId]['emails'];
+				}
 				while($emailCount > $this->allUsers[$this->organisation][$userId]['emails']) {
 					$this->indexExec($user, $userId);
 				}
