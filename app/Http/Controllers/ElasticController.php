@@ -99,29 +99,36 @@ class ElasticController {
 		$this->users = $givenUsers;
 		
 		foreach ($this->users as $userId => $user) {
-			$currentUser = env('CURRENT_USER');
-			if($currentUser == 'NEXT') {
+			if(isset($currentUser) && $currentUser == 'NEXT') {
 				$currentUser = $userId;
 				$this->dynamoDBObj->changeEnv(['CURRENT_USER'   => $currentUser]);
+			} else {
+				$currentUser = env('CURRENT_USER');
 			}
 			$this->allUsers = json_decode(env('allUsers'),true);
 			if(($currentUser != null || $currentUser != '' || $currentUser != '0') && $userId != $currentUser && isset($this->allUsers[$this->organisation][$userId])) {
 				continue;
 			} else if(($currentUser != null || $currentUser != '' || $currentUser != '0') && $userId == $currentUser) {
 				$emailCount = $this->getElasticCount($userId);
+				$this->dynamoDBObj->changeEnv(['CURRENT_USER'   => $userId]);
 				if($emailCount==0) {
 					$this->allUsers[$this->organisation][$userId]['emails'] = 0;
 					$this->dynamoDBObj->changeEnv(['CURRENT_USER'   => 'NEXT']);
 					$this->dynamoDBObj->changeEnv(['allUsers' => json_encode($this->allUsers)]);
 					$this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT' => 0]);
 					$this->currentStartingPoint = 0;
+					$currentUser='NEXT';
 					continue;
 				}
 				if(isset($this->allUsers[$this->organisation][$userId]['emails'])) {
 					$this->currentStartingPoint = $this->allUsers[$this->organisation][$userId]['emails'];
+				} else {
+					$this->allUsers[$this->organisation][$userId]['emails'] = 0;
+					$this->dynamoDBObj->changeEnv(['allUsers' => json_encode($this->allUsers)]);
 				}
 				while($emailCount > $this->allUsers[$this->organisation][$userId]['emails']) {
 					$this->indexExec($user, $userId);
+					$this->dynamoDBObj->changeEnv(['allUsers' => json_encode($this->allUsers)]);
 				}
 				if($emailCount <= $this->allUsers[$this->organisation][$userId]['emails']) {
 					$this->allUsers[$this->organisation][$userId]['emails'] = $emailCount;
@@ -129,9 +136,10 @@ class ElasticController {
 					$this->dynamoDBObj->changeEnv(['allUsers' => json_encode($this->allUsers)]);
 					$this->dynamoDBObj->changeEnv(['CURRENT_STARTING_POINT' => 0]);
 					$this->currentStartingPoint = 0;
-					continue;
+					$currentUser='NEXT';
 				}
 			}
+			$this->dynamoDBObj->changeEnv(['allUsers' => json_encode($this->allUsers)]);
 		}
 		$this->dynamoDBObj->changeEnv(['scanningDone'   => 1]);
 		exit();
@@ -147,34 +155,34 @@ class ElasticController {
 		$bodyObj->from =  $this->currentStartingPoint;
 		$bodyObj->query =  new \stdClass();
 		$bodyObj->query->bool =  new \stdClass();
-		/*$bodyObj->query->bool->must =  array();
+		$bodyObj->query->bool->must =  array();
 		$bodyObj->query->bool->must[] = new \stdClass();
 		$bodyObj->query->bool->must[0]->range = new \stdClass();
 		$bodyObj->query->bool->must[0]->range->date = new \stdClass();
-		$bodyObj->query->bool->must[0]->range->date->gte = '2017-03-11T00:00:00.000Z';
-		$bodyObj->query->bool->must[0]->range->date->lte = '2018-10-24T00:00:00.000Z';*/
+		$bodyObj->query->bool->must[0]->range->date->gte = '2019-01-01T00:00:00.000Z';
+		//$bodyObj->query->bool->must[0]->range->date->lte = '2018-10-24T00:00:00.000Z';
 		$bodyObj->query->bool->must[] = new \stdClass();
-		$bodyObj->query->bool->must[0]->match = new \stdClass();
-		$bodyObj->query->bool->must[0]->match->ownerIds = $userId;
-		/*$bodyObj->query->bool->must[] = new \stdClass();
-		$bodyObj->query->bool->must[2] = new \stdClass();
-		$bodyObj->query->bool->must[2]->bool = new \stdClass();
-		$bodyObj->query->bool->must[2]->bool->should = array();
-		$bodyObj->query->bool->must[2]->bool->should[0] = new \stdClass();
-		$bodyObj->query->bool->must[2]->bool->should[0]->term = new \stdClass();
-		$bodyObj->query->bool->must[2]->bool->should[0]->term->body = "text1";
-		$bodyObj->query->bool->must[2]->bool->should[1] = new \stdClass();
-		$bodyObj->query->bool->must[2]->bool->should[1]->term = new \stdClass();
-		$bodyObj->query->bool->must[2]->bool->should[1]->term->body = "text2";
+		$bodyObj->query->bool->must[1]->match = new \stdClass();
+		$bodyObj->query->bool->must[1]->match->ownerIds = $userId;
+        /*$bodyObj->query->bool->must[] = new \stdClass();
+        $bodyObj->query->bool->must[2] = new \stdClass();
+        $bodyObj->query->bool->must[2]->bool = new \stdClass();
+        $bodyObj->query->bool->must[2]->bool->should = array();
+        $bodyObj->query->bool->must[2]->bool->should[0] = new \stdClass();
+        $bodyObj->query->bool->must[2]->bool->should[0]->term = new \stdClass();
+        $bodyObj->query->bool->must[2]->bool->should[0]->term->body = "text1";
+        $bodyObj->query->bool->must[2]->bool->should[1] = new \stdClass();
+        $bodyObj->query->bool->must[2]->bool->should[1]->term = new \stdClass();
+        $bodyObj->query->bool->must[2]->bool->should[1]->term->body = "text2";
 		/*$bodyObj->aggs =  new \stdClass();
-		$bodyObj->aggs->by_userId = new \stdClass();
-		$bodyObj->aggs->by_userId->terms = new \stdClass();
-		$bodyObj->aggs->by_userId->terms->field = 'ownerIds';
-		$bodyObj->aggs->by_userId->terms->size = 100000;
-		$bodyObj->aggs->by_userId->aggs = new \stdClass();
-		$bodyObj->aggs->by_userId->aggs->total_size = new \stdClass();
-		$bodyObj->aggs->by_userId->aggs->total_size->sum = new \stdClass();
-		$bodyObj->aggs->by_userId->aggs->total_size->sum->field = 'messageSize';*/
+        $bodyObj->aggs->by_userId = new \stdClass();
+        $bodyObj->aggs->by_userId->terms = new \stdClass();
+        $bodyObj->aggs->by_userId->terms->field = 'ownerIds';
+        $bodyObj->aggs->by_userId->terms->size = 100000;
+        $bodyObj->aggs->by_userId->aggs = new \stdClass();
+        $bodyObj->aggs->by_userId->aggs->total_size = new \stdClass();
+        $bodyObj->aggs->by_userId->aggs->total_size->sum = new \stdClass();
+        $bodyObj->aggs->by_userId->aggs->total_size->sum->field = 'messageSize';*/
 		
 		$options['body'] = json_encode($bodyObj);
 		$response = json_decode($this->callApi($url, $options));
